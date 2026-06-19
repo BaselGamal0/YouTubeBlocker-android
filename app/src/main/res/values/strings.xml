@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">System Service</string>
+    <string name="accessibility_description">Monitors apps to block YouTube access for self-control purposes. This service detects when YouTube is opened in any app and blocks access.</string>
+    <string name="admin_description">Prevents uninstallation of the YouTube blocker app. You will need your password to disable this.</string>
+</resources>
