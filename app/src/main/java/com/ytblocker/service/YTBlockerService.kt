@@ -11,13 +11,48 @@ import android.view.LayoutInflater
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.widget.TextView
+import com.ytblocker.data.BlockedSites
 
 class YTBlockerService : AccessibilityService() {
 
     private var windowManager: WindowManager? = null
-    private var blockOverlay: android.view.View? = null
+    private var blockOverlay: TextView? = null
+    private var overlayParams: WindowManager.LayoutParams? = null
     private val handler = Handler(Looper.getMainLooper())
     private var isOverlayShowing = false
+
+    // Browser packages to monitor for URL-based blocking
+    private val browserPackages = setOf(
+        "com.android.chrome",
+        "org.mozilla.firefox",
+        "com.opera.browser",
+        "com.opera.mini.native",
+        "com.brave.browser",
+        "com.microsoft.emmx",           // Edge
+        "com.vivaldi.browser",
+        "com.duckduckgo.mobile.android",
+        "com.sec.android.app.sbrowser", // Samsung Internet
+        "com.UCMobile.intl",            // UC Browser
+        "com.kiwibrowser.browser",
+        "org.chromium.chrome",
+        "com.mi.globalbrowser",         // Xiaomi Browser
+        "com.huawei.browser",
+        "mark.via.gp",                  // Via Browser
+    )
+
+    // URL bar view IDs for different browsers
+    private val urlBarIds = listOf(
+        "com.android.chrome:id/url_bar",
+        "com.android.chrome:id/search_box_text",
+        "org.mozilla.firefox:id/url_bar_title",
+        "org.mozilla.firefox:id/mozac_browser_toolbar_url_view",
+        "com.opera.browser:id/url_field",
+        "com.brave.browser:id/url_bar",
+        "com.microsoft.emmx:id/url_bar",
+        "com.vivaldi.browser:id/url_bar",
+        "com.sec.android.app.sbrowser:id/location_bar_edit_text",
+        "com.duckduckgo.mobile.android:id/omnibarTextInput",
+    )
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -26,7 +61,7 @@ class YTBlockerService : AccessibilityService() {
     }
 
     private fun createOverlay() {
-        val params = WindowManager.LayoutParams(
+        overlayParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
@@ -36,54 +71,77 @@ class YTBlockerService : AccessibilityService() {
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         )
-        params.gravity = Gravity.CENTER
+        overlayParams?.gravity = Gravity.CENTER
 
-        // Simple red overlay
-        val textView = TextView(this).apply {
-            text = "🚫 YOUTUBE BLOCKED"
+        // Red overlay with dynamic text
+        blockOverlay = TextView(this).apply {
+            text = "🚫 BLOCKED"
             textSize = 32f
             setTextColor(Color.WHITE)
             setBackgroundColor(Color.parseColor("#FF1744"))
             gravity = Gravity.CENTER
             setPadding(32, 32, 32, 32)
         }
-        
-        blockOverlay = textView
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val packageName = event.packageName?.toString() ?: return
         val className = event.className?.toString() ?: ""
 
-        // Detect YouTube App
-        if (packageName == "com.google.android.youtube") {
-            blockApp()
+        // 1. Check if the app itself is in the blocked packages list
+        val appCategory = BlockedSites.getBlockedPackageCategory(packageName)
+        if (appCategory != null) {
+            blockApp(appCategory)
             return
         }
 
-        // Detect Chrome navigating to YouTube
-        if (packageName == "com.android.chrome") {
-            val rootNode = rootInActiveWindow
-            if (rootNode != null) {
-                // Find URL bar node
-                val urlNodes = rootNode.findAccessibilityNodeInfosByViewId("com.android.chrome:id/url_bar")
-                if (urlNodes.isNotEmpty()) {
-                    val url = urlNodes[0].text?.toString() ?: ""
-                    if (url.contains("youtube.com")) {
-                        blockApp()
-                        return
-                    }
-                }
-                
-                // Fallback check for web content containing youtube URL
-                // We check the content description of nodes, as WebViews sometimes expose the URL there
-                // But text matching is more complex. The URL bar check is usually sufficient.
-            }
+        // 2. Check if a browser is navigating to a blocked website
+        if (packageName in browserPackages) {
+            checkBrowserUrl(packageName)
         }
     }
 
-    private fun blockApp() {
+    /**
+     * Scans the browser's URL bar for blocked domains.
+     */
+    private fun checkBrowserUrl(browserPackage: String) {
+        val rootNode = rootInActiveWindow ?: return
+
+        // Try known URL bar IDs
+        for (urlBarId in urlBarIds) {
+            val urlNodes = rootNode.findAccessibilityNodeInfosByViewId(urlBarId)
+            if (urlNodes.isNotEmpty()) {
+                val url = urlNodes[0].text?.toString() ?: ""
+                val category = BlockedSites.getBlockedCategory(url)
+                if (category != null) {
+                    blockApp(category)
+                    return
+                }
+            }
+        }
+
+        // Generic fallback: search for any EditText that may contain a URL
+        // Some browsers use custom URL bar IDs not in our list
+        try {
+            val allNodes = rootNode.findAccessibilityNodeInfosByViewId("$browserPackage:id/url_bar")
+            if (allNodes.isNotEmpty()) {
+                val url = allNodes[0].text?.toString() ?: ""
+                val category = BlockedSites.getBlockedCategory(url)
+                if (category != null) {
+                    blockApp(category)
+                    return
+                }
+            }
+        } catch (_: Exception) {
+            // Ignore if the ID doesn't exist
+        }
+    }
+
+    private fun blockApp(category: String) {
         if (isOverlayShowing) return
+
+        // Update overlay text with the category
+        blockOverlay?.text = "🚫 $category BLOCKED"
 
         // 1. Perform Global Back Action to close the app
         performGlobalAction(GLOBAL_ACTION_BACK)
@@ -105,7 +163,7 @@ class YTBlockerService : AccessibilityService() {
     private fun showOverlay() {
         if (!isOverlayShowing && blockOverlay != null) {
             try {
-                windowManager?.addView(blockOverlay, blockOverlay?.layoutParams)
+                windowManager?.addView(blockOverlay, overlayParams)
                 isOverlayShowing = true
             } catch (e: Exception) {
                 // View already added or other window manager error

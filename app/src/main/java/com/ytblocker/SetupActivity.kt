@@ -109,7 +109,7 @@ class SetupActivity : AppCompatActivity() {
             if (!dpm.isAdminActive(adminComponent)) {
                 val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
                 intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
-                intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "This prevents you from uninstalling the YouTube blocker app.")
+                intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "This prevents you from uninstalling the content blocker app.")
                 startActivity(intent)
             }
         }

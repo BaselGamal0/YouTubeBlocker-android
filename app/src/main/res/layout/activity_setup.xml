@@ -23,7 +23,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="YouTube Blocker"
+            android:text="Content Blocker"
             android:textColor="@color/red"
             android:textSize="26sp"
             android:textStyle="bold"
@@ -32,7 +32,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Self-control — blocks YouTube everywhere"
+            android:text="Self-control — blocks YouTube, Adult Content, Gambling, and Ads"
             android:textColor="@color/text_secondary"
             android:textSize="13sp"
             android:layout_marginTop="4dp"
