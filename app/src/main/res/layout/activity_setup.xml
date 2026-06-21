@@ -38,19 +38,21 @@
             android:layout_marginTop="4dp"
             android:layout_marginBottom="32dp" />
 
-        <!-- Step 1: Accessibility Service -->
+        <!-- Unlock Section (shown when app is opened and password is set) -->
         <LinearLayout
+            android:id="@+id/layoutUnlock"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:background="@drawable/card_background"
             android:padding="16dp"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="12dp"
+            android:visibility="gone">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="STEP 1"
+                android:text="ENTER PASSWORD"
                 android:textColor="@color/red"
                 android:textSize="11sp"
                 android:textStyle="bold"
@@ -59,7 +61,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Enable Accessibility Service"
+                android:text="System Blocker is Locked"
                 android:textColor="@color/white"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -68,127 +70,13 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Allows the app to detect when YouTube is opened"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:layout_marginTop="2dp" />
-
-            <TextView
-                android:id="@+id/step1Status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚠ Not enabled"
-                android:textColor="@color/red"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:layout_marginTop="8dp" />
-
-            <Button
-                android:id="@+id/btnEnableAccessibility"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/button_red"
-                android:text="Open Accessibility Settings"
-                android:textColor="@color/white"
-                android:textSize="13sp"
-                android:textAllCaps="false" />
-        </LinearLayout>
-
-        <!-- Step 2: Device Admin -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/card_background"
-            android:padding="16dp"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="STEP 2"
-                android:textColor="@color/red"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.15" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Enable Device Admin"
-                android:textColor="@color/white"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginTop="4dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Prevents you from uninstalling the app"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:layout_marginTop="2dp" />
-
-            <TextView
-                android:id="@+id/step2Status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚠ Not enabled"
-                android:textColor="@color/red"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:layout_marginTop="8dp" />
-
-            <Button
-                android:id="@+id/btnEnableAdmin"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/button_red"
-                android:text="Activate Device Admin"
-                android:textColor="@color/white"
-                android:textSize="13sp"
-                android:textAllCaps="false" />
-        </LinearLayout>
-
-        <!-- Step 3: Password -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/card_background"
-            android:padding="16dp"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="STEP 3"
-                android:textColor="@color/red"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.15" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Set Lock Password"
-                android:textColor="@color/white"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginTop="4dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Required to disable the app later. Ask a friend to set it!"
+                android:text="Enter password to modify settings or uninstall the blocker."
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp"
                 android:layout_marginTop="2dp" />
 
             <EditText
-                android:id="@+id/editPassword"
+                android:id="@+id/editUnlockPassword"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
                 android:layout_marginTop="12dp"
@@ -202,58 +90,259 @@
                 android:inputType="textPassword"
                 android:importantForAutofill="no" />
 
-            <EditText
-                android:id="@+id/editPasswordConfirm"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/edit_text_background"
-                android:hint="Confirm password"
-                android:textColorHint="@color/text_hint"
-                android:textColor="@color/white"
-                android:textSize="14sp"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:inputType="textPassword"
-                android:importantForAutofill="no" />
-
-            <TextView
-                android:id="@+id/step3Status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text=""
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:layout_marginTop="8dp"
-                android:visibility="gone" />
-
             <Button
-                android:id="@+id/btnSetPassword"
+                android:id="@+id/btnUnlock"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
                 android:layout_marginTop="12dp"
-                android:background="@drawable/button_red"
-                android:text="Set Password"
-                android:textColor="@color/white"
+                android:background="@drawable/button_green"
+                android:text="Unlock"
+                android:textColor="#000000"
                 android:textSize="13sp"
+                android:textStyle="bold"
                 android:textAllCaps="false" />
         </LinearLayout>
 
-        <!-- Complete Setup Button -->
-        <Button
-            android:id="@+id/btnComplete"
+        <!-- Setup/Settings Section -->
+        <LinearLayout
+            android:id="@+id/layoutSetup"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="32dp"
-            android:background="@drawable/button_green"
-            android:text="✓  Complete Setup &amp; Hide App"
-            android:textColor="#000000"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:textAllCaps="false"
-            android:enabled="false"
-            android:alpha="0.4" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Step 1: Accessibility Service -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_background"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="STEP 1"
+                    android:textColor="@color/red"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Enable Accessibility Service"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Allows the app to detect when YouTube is opened"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp" />
+
+                <TextView
+                    android:id="@+id/step1Status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚠ Not enabled"
+                    android:textColor="@color/red"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
+
+                <Button
+                    android:id="@+id/btnEnableAccessibility"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/button_red"
+                    android:text="Open Accessibility Settings"
+                    android:textColor="@color/white"
+                    android:textSize="13sp"
+                    android:textAllCaps="false" />
+            </LinearLayout>
+
+            <!-- Step 2: Device Admin -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_background"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="STEP 2"
+                    android:textColor="@color/red"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Enable Device Admin"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Prevents you from uninstalling the app"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp" />
+
+                <TextView
+                    android:id="@+id/step2Status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚠ Not enabled"
+                    android:textColor="@color/red"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
+
+                <Button
+                    android:id="@+id/btnEnableAdmin"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/button_red"
+                    android:text="Activate Device Admin"
+                    android:textColor="@color/white"
+                    android:textSize="13sp"
+                    android:textAllCaps="false" />
+            </LinearLayout>
+
+            <!-- Step 3: Password -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_background"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="STEP 3"
+                    android:textColor="@color/red"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Set Lock Password"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Required to disable the app later. Ask a friend to set it!"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp" />
+
+                <EditText
+                    android:id="@+id/editPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/edit_text_background"
+                    android:hint="Enter password"
+                    android:textColorHint="@color/text_hint"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:inputType="textPassword"
+                    android:importantForAutofill="no" />
+
+                <EditText
+                    android:id="@+id/editPasswordConfirm"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/edit_text_background"
+                    android:hint="Confirm password"
+                    android:textColorHint="@color/text_hint"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:inputType="textPassword"
+                    android:importantForAutofill="no" />
+
+                <TextView
+                    android:id="@+id/step3Status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/btnSetPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/button_red"
+                    android:text="Set Password"
+                    android:textColor="@color/white"
+                    android:textSize="13sp"
+                    android:textAllCaps="false" />
+            </LinearLayout>
+
+            <!-- Complete Setup Button -->
+            <Button
+                android:id="@+id/btnComplete"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/button_green"
+                android:text="✓  Complete Setup"
+                android:textColor="#000000"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:enabled="false"
+                android:alpha="0.4" />
+
+            <!-- Uninstall Blocker Button -->
+            <Button
+                android:id="@+id/btnUninstall"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="32dp"
+                android:background="@drawable/button_red"
+                android:text="🗑  Uninstall Blocker"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:visibility="gone" />
+
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>

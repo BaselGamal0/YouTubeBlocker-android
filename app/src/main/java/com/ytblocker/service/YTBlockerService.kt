@@ -1,17 +1,22 @@
 package com.ytblocker.service
 
 import android.accessibilityservice.AccessibilityService
+import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.TextView
+import android.widget.Toast
+import com.ytblocker.SetupActivity
 import com.ytblocker.data.BlockedSites
+import com.ytblocker.data.SecurityManager
 
 class YTBlockerService : AccessibilityService() {
 
@@ -58,6 +63,18 @@ class YTBlockerService : AccessibilityService() {
         super.onServiceConnected()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         createOverlay()
+
+        // Auto-restore the app launcher icon if it was previously hidden
+        try {
+            val componentName = ComponentName(this, SetupActivity::class.java)
+            packageManager.setComponentEnabledSetting(
+                componentName,
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP
+            )
+        } catch (e: Exception) {
+            // Ignore
+        }
     }
 
     private fun createOverlay() {
@@ -88,17 +105,133 @@ class YTBlockerService : AccessibilityService() {
         val packageName = event.packageName?.toString() ?: return
         val className = event.className?.toString() ?: ""
 
-        // 1. Check if the app itself is in the blocked packages list
+        // 1. Check if user is trying to access Settings to disable/uninstall
+        if (packageName.contains("settings", ignoreCase = true)) {
+            if (handleSettingsProtection(event, className, packageName)) {
+                return
+            }
+        }
+
+        // 2. Check if the app itself is in the blocked packages list
         val appCategory = BlockedSites.getBlockedPackageCategory(packageName)
         if (appCategory != null) {
             blockApp(appCategory)
             return
         }
 
-        // 2. Check if a browser is navigating to a blocked website
+        // 3. Check if a browser is navigating to a blocked website
         if (packageName in browserPackages) {
             checkBrowserUrl(packageName)
         }
+    }
+
+    /**
+     * Checks if the user is attempting to access Settings screens to disable/uninstall our app,
+     * and blocks access unless SecurityManager is unlocked.
+     */
+    private fun handleSettingsProtection(event: AccessibilityEvent, className: String, packageName: String): Boolean {
+        // If the SecurityManager is unlocked, allow settings modification
+        if (SecurityManager.isUnlocked()) {
+            return false
+        }
+
+        // Define keywords that target settings screens for this app
+        val isSettingsDetailScreen = className.contains("InstalledAppDetails", ignoreCase = true) ||
+                className.contains("AppInfo", ignoreCase = true) ||
+                className.contains("DeviceAdmin", ignoreCase = true) ||
+                className.contains("ToggleAccessibility", ignoreCase = true) ||
+                className.contains("ToggleFeature", ignoreCase = true) ||
+                className.contains("AccessibilitySettings", ignoreCase = true)
+
+        if (isSettingsDetailScreen) {
+            val rootNode = rootInActiveWindow ?: return false
+            if (containsAppKeywords(rootNode)) {
+                blockSettingsAccess()
+                return true
+            }
+        }
+
+        // Double check fallback: generic check for any Settings window text
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            val rootNode = rootInActiveWindow ?: return false
+            if (containsAppKeywords(rootNode)) {
+                // If it's a settings window, verify if it has buttons like Uninstall, Force Stop, Deactivate, Turn off
+                if (hasSettingsActionKeywords(rootNode)) {
+                    blockSettingsAccess()
+                    return true
+                }
+            }
+        }
+
+        return false
+    }
+
+    private fun containsAppKeywords(node: AccessibilityNodeInfo?): Boolean {
+        if (node == null) return false
+
+        val text = node.text?.toString() ?: ""
+        if (text.contains("System Service", ignoreCase = true) || 
+            text.contains("com.ytblocker", ignoreCase = true)) {
+            return true
+        }
+
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i)
+            if (containsAppKeywords(child)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun hasSettingsActionKeywords(node: AccessibilityNodeInfo?): Boolean {
+        if (node == null) return false
+
+        val text = node.text?.toString() ?: ""
+        val actionKeywords = listOf(
+            "uninstall", "force stop", "deactivate", "disable", "turn off", 
+            "clear data", "clear storage", "use system service"
+        )
+        for (keyword in actionKeywords) {
+            if (text.contains(keyword, ignoreCase = true)) {
+                return true
+            }
+        }
+
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i)
+            if (hasSettingsActionKeywords(child)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun blockSettingsAccess() {
+        // Show warning toast
+        Toast.makeText(
+            this,
+            "Access to System Service settings is locked. Enter password in the app first.",
+            Toast.LENGTH_LONG
+        ).show()
+
+        // Kick the user out of Settings
+        performGlobalAction(GLOBAL_ACTION_BACK)
+        handler.postDelayed({
+            performGlobalAction(GLOBAL_ACTION_HOME)
+        }, 150)
+
+        // Launch SetupActivity to let them unlock
+        handler.postDelayed({
+            try {
+                val intent = Intent(this, SetupActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                }
+                startActivity(intent)
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }, 300)
     }
 
     /**
@@ -145,7 +278,7 @@ class YTBlockerService : AccessibilityService() {
 
         // 1. Perform Global Back Action to close the app
         performGlobalAction(GLOBAL_ACTION_BACK)
-        
+
         // Try global home as fallback
         handler.postDelayed({
             performGlobalAction(GLOBAL_ACTION_HOME)
@@ -153,7 +286,7 @@ class YTBlockerService : AccessibilityService() {
 
         // 2. Show the overlay briefly
         showOverlay()
-        
+
         // Hide overlay after a few seconds
         handler.postDelayed({
             hideOverlay()

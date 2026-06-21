@@ -5,10 +5,12 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.text.TextUtils
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -16,6 +18,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.ytblocker.admin.YTBlockerAdminReceiver
 import com.ytblocker.data.PasswordManager
+import com.ytblocker.data.SecurityManager
 import com.ytblocker.service.YTBlockerService
 
 class SetupActivity : AppCompatActivity() {
@@ -28,6 +31,14 @@ class SetupActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_setup)
 
+        // Ensure the launcher icon is enabled (make it visible again if it was hidden)
+        val launcherComponent = ComponentName(this, SetupActivity::class.java)
+        packageManager.setComponentEnabledSetting(
+            launcherComponent,
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+            PackageManager.DONT_KILL_APP
+        )
+
         passwordManager = PasswordManager(this)
         dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         adminComponent = ComponentName(this, YTBlockerAdminReceiver::class.java)
@@ -36,11 +47,29 @@ class SetupActivity : AppCompatActivity() {
         setupAdminButton()
         setupPasswordSection()
         setupCompleteButton()
+        setupUnlockButton()
+        setupUninstallButton()
     }
 
     override fun onResume() {
         super.onResume()
-        updateUI()
+        checkLockState()
+    }
+
+    private fun checkLockState() {
+        val hasPassword = passwordManager.hasPassword()
+        val isUnlocked = SecurityManager.isUnlocked()
+        val layoutUnlock = findViewById<View>(R.id.layoutUnlock)
+        val layoutSetup = findViewById<View>(R.id.layoutSetup)
+
+        if (hasPassword && !isUnlocked) {
+            layoutUnlock.visibility = View.VISIBLE
+            layoutSetup.visibility = View.GONE
+        } else {
+            layoutUnlock.visibility = View.GONE
+            layoutSetup.visibility = View.VISIBLE
+            updateUI()
+        }
     }
 
     private fun updateUI() {
@@ -86,14 +115,19 @@ class SetupActivity : AppCompatActivity() {
         findViewById<EditText>(R.id.editPassword).isEnabled = !hasPassword
         findViewById<EditText>(R.id.editPasswordConfirm).isEnabled = !hasPassword
 
-        // Complete Button
+        // Complete and Uninstall Buttons
         val btnComplete = findViewById<Button>(R.id.btnComplete)
+        val btnUninstall = findViewById<Button>(R.id.btnUninstall)
         if (isAccessibilityEnabled && isAdminActive && hasPassword) {
-            btnComplete.isEnabled = true
-            btnComplete.alpha = 1.0f
-        } else {
             btnComplete.isEnabled = false
-            btnComplete.alpha = 0.4f
+            btnComplete.text = "✓ Setup Completed"
+            btnComplete.alpha = 0.8f
+            btnUninstall.visibility = View.VISIBLE
+        } else {
+            btnComplete.isEnabled = isAccessibilityEnabled && isAdminActive && hasPassword
+            btnComplete.text = "✓ Complete Setup"
+            btnComplete.alpha = if (btnComplete.isEnabled) 1.0f else 0.4f
+            btnUninstall.visibility = View.GONE
         }
     }
 
@@ -141,16 +175,43 @@ class SetupActivity : AppCompatActivity() {
 
     private fun setupCompleteButton() {
         findViewById<Button>(R.id.btnComplete).setOnClickListener {
-            // Hide launcher icon
-            val componentName = ComponentName(this, SetupActivity::class.java)
-            packageManager.setComponentEnabledSetting(
-                componentName,
-                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                PackageManager.DONT_KILL_APP
-            )
-            
-            Toast.makeText(this, "Setup complete! App icon hidden.", Toast.LENGTH_LONG).show()
+            SecurityManager.lock()
+            Toast.makeText(this, "Setup complete! Blocker is active.", Toast.LENGTH_LONG).show()
             finish()
+        }
+    }
+
+    private fun setupUnlockButton() {
+        val editUnlockPassword = findViewById<EditText>(R.id.editUnlockPassword)
+        findViewById<Button>(R.id.btnUnlock).setOnClickListener {
+            val pass = editUnlockPassword.text.toString()
+            if (passwordManager.verifyPassword(pass)) {
+                SecurityManager.unlock()
+                editUnlockPassword.text.clear()
+                
+                // Hide keyboard
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.hideSoftInputFromWindow(editUnlockPassword.windowToken, 0)
+                
+                checkLockState()
+            } else {
+                Toast.makeText(this, "Incorrect password", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun setupUninstallButton() {
+        findViewById<Button>(R.id.btnUninstall).setOnClickListener {
+            // Deactivate device admin first
+            if (dpm.isAdminActive(adminComponent)) {
+                dpm.removeActiveAdmin(adminComponent)
+            }
+            
+            // Trigger uninstall
+            val intent = Intent(Intent.ACTION_DELETE).apply {
+                data = Uri.parse("package:$packageName")
+            }
+            startActivity(intent)
         }
     }
 
