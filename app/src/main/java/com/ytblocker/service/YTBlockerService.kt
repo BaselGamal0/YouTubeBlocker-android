@@ -12,6 +12,7 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.TextView
 import android.widget.Toast
+import com.ytblocker.SetupActivity
 import com.ytblocker.data.BlockedSites
 import com.ytblocker.data.SecurityManager
 
