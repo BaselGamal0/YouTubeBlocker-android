@@ -4,8 +4,6 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.text.TextUtils
@@ -31,14 +29,6 @@ class SetupActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_setup)
 
-        // Ensure the launcher icon is enabled (make it visible again if it was hidden)
-        val launcherComponent = ComponentName(this, SetupActivity::class.java)
-        packageManager.setComponentEnabledSetting(
-            launcherComponent,
-            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-            PackageManager.DONT_KILL_APP
-        )
-
         passwordManager = PasswordManager(this)
         dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         adminComponent = ComponentName(this, YTBlockerAdminReceiver::class.java)
@@ -48,7 +38,6 @@ class SetupActivity : AppCompatActivity() {
         setupPasswordSection()
         setupCompleteButton()
         setupUnlockButton()
-        setupUninstallButton()
     }
 
     override fun onResume() {
@@ -115,19 +104,16 @@ class SetupActivity : AppCompatActivity() {
         findViewById<EditText>(R.id.editPassword).isEnabled = !hasPassword
         findViewById<EditText>(R.id.editPasswordConfirm).isEnabled = !hasPassword
 
-        // Complete and Uninstall Buttons
+        // Complete Button
         val btnComplete = findViewById<Button>(R.id.btnComplete)
-        val btnUninstall = findViewById<Button>(R.id.btnUninstall)
         if (isAccessibilityEnabled && isAdminActive && hasPassword) {
             btnComplete.isEnabled = false
             btnComplete.text = "✓ Setup Completed"
             btnComplete.alpha = 0.8f
-            btnUninstall.visibility = View.VISIBLE
         } else {
             btnComplete.isEnabled = isAccessibilityEnabled && isAdminActive && hasPassword
             btnComplete.text = "✓ Complete Setup"
             btnComplete.alpha = if (btnComplete.isEnabled) 1.0f else 0.4f
-            btnUninstall.visibility = View.GONE
         }
     }
 
@@ -200,20 +186,7 @@ class SetupActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupUninstallButton() {
-        findViewById<Button>(R.id.btnUninstall).setOnClickListener {
-            // Deactivate device admin first
-            if (dpm.isAdminActive(adminComponent)) {
-                dpm.removeActiveAdmin(adminComponent)
-            }
-            
-            // Trigger uninstall
-            val intent = Intent(Intent.ACTION_DELETE).apply {
-                data = Uri.parse("package:$packageName")
-            }
-            startActivity(intent)
-        }
-    }
+
 
     private fun isAccessibilityServiceEnabled(context: Context, accessibilityService: Class<*>): Boolean {
         var accessibilityEnabled = 0

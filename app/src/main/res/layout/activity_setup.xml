@@ -327,21 +327,6 @@
                 android:enabled="false"
                 android:alpha="0.4" />
 
-            <!-- Uninstall Blocker Button -->
-            <Button
-                android:id="@+id/btnUninstall"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="32dp"
-                android:background="@drawable/button_red"
-                android:text="🗑  Uninstall Blocker"
-                android:textColor="@color/white"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textAllCaps="false"
-                android:visibility="gone" />
-
         </LinearLayout>
 
     </LinearLayout>

@@ -1,9 +1,7 @@
 package com.ytblocker.service
 
 import android.accessibilityservice.AccessibilityService
-import android.content.ComponentName
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Handler
@@ -14,7 +12,6 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.TextView
 import android.widget.Toast
-import com.ytblocker.SetupActivity
 import com.ytblocker.data.BlockedSites
 import com.ytblocker.data.SecurityManager
 
@@ -63,18 +60,6 @@ class YTBlockerService : AccessibilityService() {
         super.onServiceConnected()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         createOverlay()
-
-        // Auto-restore the app launcher icon if it was previously hidden
-        try {
-            val componentName = ComponentName(this, SetupActivity::class.java)
-            packageManager.setComponentEnabledSetting(
-                componentName,
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                PackageManager.DONT_KILL_APP
-            )
-        } catch (e: Exception) {
-            // Ignore
-        }
     }
 
     private fun createOverlay() {
@@ -273,8 +258,8 @@ class YTBlockerService : AccessibilityService() {
     private fun blockApp(category: String) {
         if (isOverlayShowing) return
 
-        // Update overlay text with the category
-        blockOverlay?.text = "🚫 $category BLOCKED"
+        // Update overlay text with the password prompt
+        blockOverlay?.text = "🔒 Enter Password"
 
         // 1. Perform Global Back Action to close the app
         performGlobalAction(GLOBAL_ACTION_BACK)
