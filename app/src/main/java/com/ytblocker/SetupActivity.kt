@@ -4,6 +4,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
 import android.text.TextUtils
@@ -54,6 +55,15 @@ class SetupActivity : AppCompatActivity() {
         if (hasPassword && !isUnlocked) {
             layoutUnlock.visibility = View.VISIBLE
             layoutSetup.visibility = View.GONE
+
+            // Update subtitle to show which app/site triggered the lock
+            val blockedCategory = intent?.getStringExtra("BLOCKED_CATEGORY")
+            val subtitle = findViewById<TextView>(R.id.txtUnlockSubtitle)
+            if (!blockedCategory.isNullOrEmpty()) {
+                subtitle.text = "Enter password to access $blockedCategory"
+            } else {
+                subtitle.text = "Enter password to modify settings."
+            }
         } else {
             layoutUnlock.visibility = View.GONE
             layoutSetup.visibility = View.VISIBLE
@@ -162,6 +172,15 @@ class SetupActivity : AppCompatActivity() {
     private fun setupCompleteButton() {
         findViewById<Button>(R.id.btnComplete).setOnClickListener {
             SecurityManager.lock()
+
+            // Hide the launcher icon immediately — no reboot needed
+            val launcherComponent = ComponentName(this, SetupActivity::class.java)
+            packageManager.setComponentEnabledSetting(
+                launcherComponent,
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP
+            )
+
             Toast.makeText(this, "Setup complete! Blocker is active.", Toast.LENGTH_LONG).show()
             finish()
         }

@@ -11,7 +11,6 @@ import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.TextView
-import android.widget.Toast
 import com.ytblocker.SetupActivity
 import com.ytblocker.data.BlockedSites
 import com.ytblocker.data.SecurityManager
@@ -194,18 +193,11 @@ class YTBlockerService : AccessibilityService() {
     }
 
     private fun blockSettingsAccess() {
-        // Show warning toast
-        Toast.makeText(
-            this,
-            "Access to System Service settings is locked. Enter password in the app first.",
-            Toast.LENGTH_LONG
-        ).show()
-
-        // Kick the user out of Settings
+        // Silently kick the user out of Settings immediately
         performGlobalAction(GLOBAL_ACTION_BACK)
         handler.postDelayed({
             performGlobalAction(GLOBAL_ACTION_HOME)
-        }, 150)
+        }, 100)
 
         // Launch SetupActivity to let them unlock
         handler.postDelayed({
@@ -217,7 +209,7 @@ class YTBlockerService : AccessibilityService() {
             } catch (e: Exception) {
                 // Ignore
             }
-        }, 300)
+        }, 250)
     }
 
     /**
@@ -259,8 +251,8 @@ class YTBlockerService : AccessibilityService() {
     private fun blockApp(category: String) {
         if (isOverlayShowing) return
 
-        // Update overlay text with the password prompt
-        blockOverlay?.text = "🔒 Enter Password"
+        // Show category-specific overlay text
+        blockOverlay?.text = "🔒 Enter Password\nto access: $category"
 
         // 1. Perform Global Back Action to close the app
         performGlobalAction(GLOBAL_ACTION_BACK)
@@ -272,6 +264,19 @@ class YTBlockerService : AccessibilityService() {
 
         // 2. Show the overlay briefly
         showOverlay()
+
+        // 3. Launch SetupActivity so user can enter password right away
+        handler.postDelayed({
+            try {
+                val intent = Intent(this, SetupActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    putExtra("BLOCKED_CATEGORY", category)
+                }
+                startActivity(intent)
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }, 400)
 
         // Hide overlay after a few seconds
         handler.postDelayed({
