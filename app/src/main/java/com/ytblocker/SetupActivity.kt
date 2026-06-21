@@ -193,12 +193,20 @@ class SetupActivity : AppCompatActivity() {
             if (passwordManager.verifyPassword(pass)) {
                 SecurityManager.unlock()
                 editUnlockPassword.text.clear()
-                
+
                 // Hide keyboard
                 val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
                 imm?.hideSoftInputFromWindow(editUnlockPassword.windowToken, 0)
-                
-                checkLockState()
+
+                // If launched from a blocked app/site, just close so user can access it
+                val blockedCategory = intent?.getStringExtra("BLOCKED_CATEGORY")
+                if (!blockedCategory.isNullOrEmpty()) {
+                    // Unlocked — close this screen so they can open YouTube/etc.
+                    finish()
+                } else {
+                    // Opened normally (settings access) — show settings UI
+                    checkLockState()
+                }
             } else {
                 Toast.makeText(this, "Incorrect password", Toast.LENGTH_SHORT).show()
             }

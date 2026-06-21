@@ -18,8 +18,8 @@ object SecurityManager {
 
     fun isUnlocked(): Boolean {
         if (!isSettingsUnlocked) return false
-        // Automatically re-lock after 2 minutes (120,000 milliseconds) of inactivity
-        if (SystemClock.elapsedRealtime() - unlockTime > 120000) {
+        // Automatically re-lock after 5 minutes
+        if (SystemClock.elapsedRealtime() - unlockTime > 300000) {
             lock()
             return false
         }

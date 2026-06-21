@@ -97,6 +97,9 @@ class YTBlockerService : AccessibilityService() {
             }
         }
 
+        // If unlocked by password, skip all content blocking
+        if (SecurityManager.isUnlocked()) return
+
         // 2. Check if the app itself is in the blocked packages list
         val appCategory = BlockedSites.getBlockedPackageCategory(packageName)
         if (appCategory != null) {
