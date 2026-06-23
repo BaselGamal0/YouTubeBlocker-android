@@ -217,11 +217,12 @@ class YTBlockerService : AccessibilityService() {
 
     /**
      * Scans the browser's URL bar for blocked domains.
+     * Also does a deep scan of all visible text to catch preview/peek mode.
      */
     private fun checkBrowserUrl(browserPackage: String) {
         val rootNode = rootInActiveWindow ?: return
 
-        // Try known URL bar IDs
+        // Try known URL bar IDs first
         for (urlBarId in urlBarIds) {
             val urlNodes = rootNode.findAccessibilityNodeInfosByViewId(urlBarId)
             if (urlNodes.isNotEmpty()) {
@@ -235,7 +236,6 @@ class YTBlockerService : AccessibilityService() {
         }
 
         // Generic fallback: search for any EditText that may contain a URL
-        // Some browsers use custom URL bar IDs not in our list
         try {
             val allNodes = rootNode.findAccessibilityNodeInfosByViewId("$browserPackage:id/url_bar")
             if (allNodes.isNotEmpty()) {
@@ -249,6 +249,45 @@ class YTBlockerService : AccessibilityService() {
         } catch (_: Exception) {
             // Ignore if the ID doesn't exist
         }
+
+        // Deep scan: walk the entire accessibility tree to catch preview/peek mode,
+        // bottom sheets, and any other UI that shows blocked content without
+        // updating the URL bar.
+        val deepCategory = scanNodeForBlockedDomains(rootNode, 0)
+        if (deepCategory != null) {
+            blockApp(deepCategory)
+        }
+    }
+
+    /**
+     * Recursively scans all text nodes in the accessibility tree for blocked domain names.
+     * This catches Chrome preview mode, link previews, bottom sheets, etc.
+     * Max depth prevents performance issues on complex pages.
+     */
+    private fun scanNodeForBlockedDomains(node: AccessibilityNodeInfo?, depth: Int): String? {
+        if (node == null || depth > 15) return null
+
+        // Check this node's text and content description
+        val text = node.text?.toString() ?: ""
+        val desc = node.contentDescription?.toString() ?: ""
+
+        if (text.isNotEmpty()) {
+            val category = BlockedSites.getBlockedCategory(text)
+            if (category != null) return category
+        }
+        if (desc.isNotEmpty()) {
+            val category = BlockedSites.getBlockedCategory(desc)
+            if (category != null) return category
+        }
+
+        // Recurse into children
+        for (i in 0 until node.childCount) {
+            val child = try { node.getChild(i) } catch (_: Exception) { null }
+            val result = scanNodeForBlockedDomains(child, depth + 1)
+            if (result != null) return result
+        }
+
+        return null
     }
 
     private fun blockApp(category: String) {
