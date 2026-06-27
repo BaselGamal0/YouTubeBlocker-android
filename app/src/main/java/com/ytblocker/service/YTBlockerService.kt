@@ -97,17 +97,24 @@ class YTBlockerService : AccessibilityService() {
             }
         }
 
+        // 2. Block user switching from SystemUI (quick settings user switcher)
+        if (packageName == "com.android.systemui" && !SecurityManager.isUnlocked()) {
+            if (handleUserSwitcherBlock(event)) {
+                return
+            }
+        }
+
         // If unlocked by password, skip all content blocking
         if (SecurityManager.isUnlocked()) return
 
-        // 2. Check if the app itself is in the blocked packages list
+        // 3. Check if the app itself is in the blocked packages list
         val appCategory = BlockedSites.getBlockedPackageCategory(packageName)
         if (appCategory != null) {
             blockApp(appCategory)
             return
         }
 
-        // 3. Check if a browser is navigating to a blocked website
+        // 4. Check if a browser is navigating to a blocked website
         if (packageName in browserPackages) {
             checkBrowserUrl(packageName)
         }
@@ -115,12 +122,33 @@ class YTBlockerService : AccessibilityService() {
 
     /**
      * Checks if the user is attempting to access Settings screens to disable/uninstall our app,
-     * and blocks access unless SecurityManager is unlocked.
+     * or to switch/add users to bypass the blocker.
+     * Blocks access unless SecurityManager is unlocked.
      */
     private fun handleSettingsProtection(event: AccessibilityEvent, className: String, packageName: String): Boolean {
         // If the SecurityManager is unlocked, allow settings modification
         if (SecurityManager.isUnlocked()) {
             return false
+        }
+
+        // Block user management screens (prevents creating guest/new user to bypass blocker)
+        val isUserManagementScreen = className.contains("UserSettings", ignoreCase = true) ||
+                className.contains("MultiUser", ignoreCase = true) ||
+                className.contains("UserAndAccount", ignoreCase = true)
+
+        if (isUserManagementScreen) {
+            blockSettingsAccess()
+            return true
+        }
+
+        // Also detect user management by scanning screen content
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+            event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            val rootNode = rootInActiveWindow ?: return false
+            if (containsUserManagementKeywords(rootNode)) {
+                blockSettingsAccess()
+                return true
+            }
         }
 
         // Define keywords that target settings screens for this app
@@ -143,7 +171,6 @@ class YTBlockerService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val rootNode = rootInActiveWindow ?: return false
             if (containsAppKeywords(rootNode)) {
-                // If it's a settings window, verify if it has buttons like Uninstall, Force Stop, Deactivate, Turn off
                 if (hasSettingsActionKeywords(rootNode)) {
                     blockSettingsAccess()
                     return true
@@ -151,6 +178,24 @@ class YTBlockerService : AccessibilityService() {
             }
         }
 
+        return false
+    }
+
+    /**
+     * Blocks user switcher triggered from SystemUI (quick settings panel).
+     */
+    private fun handleUserSwitcherBlock(event: AccessibilityEvent): Boolean {
+        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            event.eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) return false
+
+        val rootNode = rootInActiveWindow ?: return false
+        if (containsUserSwitcherKeywords(rootNode)) {
+            performGlobalAction(GLOBAL_ACTION_BACK)
+            handler.postDelayed({
+                performGlobalAction(GLOBAL_ACTION_HOME)
+            }, 100)
+            return true
+        }
         return false
     }
 
@@ -189,6 +234,65 @@ class YTBlockerService : AccessibilityService() {
         for (i in 0 until node.childCount) {
             val child = node.getChild(i)
             if (hasSettingsActionKeywords(child)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
+     * Detects if the current Settings screen is a user management screen
+     * (e.g. "Multiple users", "Add user", "Add guest").
+     */
+    private fun containsUserManagementKeywords(node: AccessibilityNodeInfo?): Boolean {
+        if (node == null) return false
+
+        val text = node.text?.toString() ?: ""
+        val desc = node.contentDescription?.toString() ?: ""
+        val combined = "$text $desc"
+
+        val userKeywords = listOf(
+            "multiple users", "add user", "add guest", "guest mode",
+            "switch user", "new user", "create user", "add account user",
+            "users & accounts", "users and accounts"
+        )
+        for (keyword in userKeywords) {
+            if (combined.contains(keyword, ignoreCase = true)) {
+                return true
+            }
+        }
+
+        for (i in 0 until node.childCount) {
+            val child = try { node.getChild(i) } catch (_: Exception) { null }
+            if (containsUserManagementKeywords(child)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
+     * Detects if the SystemUI is showing a user switcher dialog/panel.
+     */
+    private fun containsUserSwitcherKeywords(node: AccessibilityNodeInfo?): Boolean {
+        if (node == null) return false
+
+        val text = node.text?.toString() ?: ""
+        val desc = node.contentDescription?.toString() ?: ""
+        val combined = "$text $desc"
+
+        val switcherKeywords = listOf(
+            "add guest", "guest", "add user", "switch user", "user icon"
+        )
+        for (keyword in switcherKeywords) {
+            if (combined.contains(keyword, ignoreCase = true)) {
+                return true
+            }
+        }
+
+        for (i in 0 until node.childCount) {
+            val child = try { node.getChild(i) } catch (_: Exception) { null }
+            if (containsUserSwitcherKeywords(child)) {
                 return true
             }
         }
